@@ -136,20 +136,36 @@ async function main() {
       fullName: 'Demo Student',
       source: StudentSource.UNIVERSITY,
       universityId: university.id,
-      organizationId: null,
       programmeId: programme.id,
       countryId: country.id,
     },
   });
 
-  console.log(`Seed complete. Admin: ${admin.email}; demo city: ${city.name}; specialty: ${specialty.name}; department: ${department.name}`);
+  const independentUser = await user('independent.demo@azam.test', role('STUDENT').id);
+  await prisma.student.upsert({
+    where: { userId: independentUser.id },
+    update: {
+      fullName: 'Independent Demo Student',
+      source: StudentSource.INDEPENDENT,
+      universityId: null,
+      organizationId: null,
+      programmeId: programme.id,
+      countryId: country.id,
+    },
+    create: {
+      userId: independentUser.id,
+      fullName: 'Independent Demo Student',
+      source: StudentSource.INDEPENDENT,
+      programmeId: programme.id,
+      countryId: country.id,
+    },
+  });
+
+  console.log(`Seeded admin: ${adminEmail}`);
+  console.log(`Seeded demo data for ${city.name}, ${specialty.name}, ${department.name}.`);
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+}).finally(() => prisma.$disconnect());
