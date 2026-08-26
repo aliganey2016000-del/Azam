@@ -51,6 +51,14 @@ export async function createApplication(userId: string, input: ApplicationCreate
     throw new ConflictError('Application source must match the student profile source');
   }
 
+  if (input.preferredStartDate && input.preferredEndDate && input.preferredEndDate <= input.preferredStartDate) {
+    throw new ConflictError('Preferred end date must be after the preferred start date');
+  }
+
+  if (input.noPreferredInstitution && input.preferredInstitutionId) {
+    throw new ConflictError('A preferred institution cannot be selected when noPreferredInstitution is true');
+  }
+
   if (input.source === 'INDEPENDENT' && (input.universityId || input.organizationId)) {
     throw new ConflictError('Independent applicants cannot have an affiliation');
   }
