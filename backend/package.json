@@ -9,6 +9,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
+    "deploy:prepare": "npm run prisma:migrate:deploy && npm run prisma:seed",
     "test": "vitest run"
   },
   "dependencies": {
