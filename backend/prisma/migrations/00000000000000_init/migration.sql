@@ -80,6 +80,9 @@ CREATE TABLE "Student" (
     "countryId" UUID,
     "source" "StudentSource" NOT NULL,
     "fullName" TEXT NOT NULL,
+    "phone" TEXT,
+    "nationality" TEXT,
+    "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
 );
@@ -181,6 +184,13 @@ CREATE TABLE "Application" (
     "universityId" UUID,
     "programmeId" UUID,
     "specialtyId" UUID,
+    "preferredCountryId" UUID,
+    "preferredCityId" UUID,
+    "preferredStartDate" TIMESTAMP(3),
+    "preferredEndDate" TIMESTAMP(3),
+    "clinicalInterests" TEXT,
+    "preferredInstitutionId" UUID,
+    "noPreferredInstitution" BOOLEAN NOT NULL DEFAULT false,
     "source" "StudentSource" NOT NULL,
     "status" "ApplicationStatus" NOT NULL DEFAULT 'DRAFT',
     "rejectedReason" TEXT,
@@ -416,6 +426,9 @@ CREATE INDEX "Student_universityId_idx" ON "Student"("universityId");
 CREATE INDEX "Student_organizationId_idx" ON "Student"("organizationId");
 
 -- CreateIndex
+CREATE INDEX "University_status_idx" ON "University"("status");
+
+-- CreateIndex
 CREATE INDEX "University_name_idx" ON "University"("name");
 
 -- CreateIndex
@@ -552,6 +565,15 @@ ALTER TABLE "Application" ADD CONSTRAINT "Application_programmeId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "Application" ADD CONSTRAINT "Application_specialtyId_fkey" FOREIGN KEY ("specialtyId") REFERENCES "Specialty"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Application" ADD CONSTRAINT "Application_preferredCountryId_fkey" FOREIGN KEY ("preferredCountryId") REFERENCES "Country"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Application" ADD CONSTRAINT "Application_preferredCityId_fkey" FOREIGN KEY ("preferredCityId") REFERENCES "City"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Application" ADD CONSTRAINT "Application_preferredInstitutionId_fkey" FOREIGN KEY ("preferredInstitutionId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ApplicationDocument" ADD CONSTRAINT "ApplicationDocument_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "Application"("id") ON DELETE CASCADE ON UPDATE CASCADE;

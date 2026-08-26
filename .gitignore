@@ -3,5 +3,6 @@ dist/
 .env
 coverage/
 *.log
+*.tsbuildinfo
 frontend/.env.local
 backend/.env

@@ -51,6 +51,25 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Success' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /students/me:
+    get:
+      tags: [Authentication]
+      summary: Get the current student profile
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /students/profile:
+    post:
+      tags: [Authentication]
+      summary: Create or update the current student profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudentProfileRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
   /applications:
     get:
       tags: [Applications]
@@ -206,6 +225,17 @@ components:
         preferredStartDate: { type: string, format: date }
         preferredEndDate: { type: string, format: date }
         clinicalInterests: { type: string, maxLength: 4000 }
+    StudentProfileRequest:
+      type: object
+      required: [fullName]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 160 }
+        phone: { type: string, maxLength: 40 }
+        nationality: { type: string, maxLength: 100 }
+        universityId: { type: string, format: uuid, nullable: true }
+        organizationId: { type: string, format: uuid, nullable: true }
+        programmeId: { type: string, format: uuid, nullable: true }
+        countryId: { type: string, format: uuid, nullable: true }
     PlacementCreateRequest:
       type: object
       required: [applicationId, studentId, organizationId, departmentId, startDate, endDate]

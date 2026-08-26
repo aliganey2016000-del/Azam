@@ -12,6 +12,9 @@ async function main() {
   await prisma.rolePermission.createMany({ data: permissionRows.map((permission) => ({ roleId: superRole.id, permissionId: permission.id })), skipDuplicates: true });
   const staffRole = roleRows.find((role) => role.name === 'AZAAM_STAFF')!;
   await prisma.rolePermission.createMany({ data: permissionRows.map((permission) => ({ roleId: staffRole.id, permissionId: permission.id })), skipDuplicates: true });
+  const studentRole = roleRows.find((role) => role.name === 'STUDENT')!;
+  const studentPermissionKeys = ['students.view', 'students.update', 'applications.view', 'applications.create'];
+  await prisma.rolePermission.createMany({ data: permissionRows.filter((permission) => studentPermissionKeys.includes(permission.key)).map((permission) => ({ roleId: studentRole.id, permissionId: permission.id })), skipDuplicates: true });
   const country = await prisma.country.upsert({ where: { name: 'Demo Country' }, update: {}, create: { name: 'Demo Country' } });
   const city = await prisma.city.upsert({ where: { countryId_name: { countryId: country.id, name: 'Demo City' } }, update: {}, create: { countryId: country.id, name: 'Demo City' } });
   const programme = await prisma.programme.create({ data: { name: `Demo MBBS ${Date.now()}` } });

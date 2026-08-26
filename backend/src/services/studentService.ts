@@ -1,0 +1,4 @@
+import { prisma } from '../utils/prisma';
+import { NotFoundError } from '../utils/errors';
+export async function getStudentForUser(userId: string) { const student = await prisma.student.findUnique({ where: { userId }, include: { university: true, organization: true, programme: true, country: true } }); if (!student) throw new NotFoundError('Student profile not found'); return student; }
+export async function updateStudentProfile(userId: string, input: { fullName: string; phone?: string; nationality?: string; universityId?: string | null; organizationId?: string | null; programmeId?: string | null; countryId?: string | null }) { await getStudentForUser(userId); return prisma.student.update({ where: { userId }, data: { ...input, profileCompleted: true }, include: { university: true, organization: true, programme: true, country: true } }); }

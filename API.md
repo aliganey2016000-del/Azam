@@ -22,6 +22,22 @@ List endpoints return `data.items` and `data.meta` with `page`, `limit`, `total`
 | POST | `/auth/login` | Login with rate limiting | Public |
 | POST | `/auth/logout` | Revoke current session/refresh token | Authenticated |
 | GET | `/auth/me` | Current user and effective permissions | Authenticated |
+
+## Phase 2 Student and Application Endpoints
+
+| Method | Path | Purpose | Auth |
+|---|---|---|---|
+| GET | `/students/me` | Get the current student's profile | Student |
+| POST | `/students/profile` | Create/update the current student's profile | Student |
+| GET | `/applications` | List applications within the caller scope | Authenticated |
+| POST | `/applications` | Create a draft application | Student |
+| GET | `/applications/:id` | Read an owned or authorized application | Scoped |
+| POST | `/applications/:id/submit` | Submit an owned draft | Student owner |
+| POST | `/applications/:id/request-documents` | Request missing documents | `applications.review` |
+| POST | `/applications/:id/approve` | Approve an application | `applications.approve` |
+| POST | `/applications/:id/reject` | Reject with a reason | `applications.reject` |
+
+Application state-changing commands create status history, audit entries, and in-app notifications in a transaction.
 | POST | `/auth/forgot-password` | Request password reset | Public |
 | POST | `/auth/reset-password` | Set password with one-time token | Public |
 | POST | `/auth/verify-email` | Verify email token | Public |

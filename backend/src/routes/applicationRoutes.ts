@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { authenticate, requirePermission } from '../middleware/auth';
+import * as controller from '../controllers/applicationController';
+const router = Router();
+router.use(authenticate);
+router.get('/', controller.list);
+router.post('/', requirePermission('applications.create'), controller.create);
+router.get('/:id', controller.detail);
+router.post('/:id/submit', controller.transition);
+router.post('/:id/request-documents', requirePermission('applications.review'), controller.transition);
+router.post('/:id/approve', requirePermission('applications.approve'), controller.transition);
+router.post('/:id/reject', requirePermission('applications.reject'), controller.transition);
+export default router;
