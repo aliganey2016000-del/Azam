@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applicationCreateSchema } from '../src/validators/application';
 
 describe('applicationCreateSchema', () => {
-  const universityId = '00000000-0000-0000-0000-000000000001';
-  const organizationId = '00000000-0000-0000-0000-000000000002';
+  // RFC 4122-compatible UUIDs. Zod 4 validates UUID variants strictly.
+  const universityId = '00000000-0000-4000-8000-000000000001';
+  const organizationId = '00000000-0000-4000-8000-000000000002';
 
   it('requires university affiliation for university applicants', () => {
     const result = applicationCreateSchema.safeParse({ source: 'UNIVERSITY' });
