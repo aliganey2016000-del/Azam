@@ -8,6 +8,7 @@ import { prisma } from './utils/prisma';
 import { errorHandler } from './middleware/errorHandler';
 import studentRoutes from './routes/studentRoutes';
 import applicationRoutes from './routes/applicationRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }));
@@ -19,5 +20,6 @@ app.get('/ready', async (_req, res, next) => { try { await prisma.$queryRaw`SELE
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/applications', applicationRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 app.use(errorHandler);
 export default app;

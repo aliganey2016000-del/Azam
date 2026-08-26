@@ -95,6 +95,16 @@ Application state-changing commands create status history, audit entries, and in
 | GET | `/ready` | Process plus database readiness |
 | GET | `/certificates/verify/:certificateId` | Minimum public certificate verification data |
 
+## Dashboard and Review Endpoints
+
+| Method | Path | Purpose | Auth |
+|---|---|---|---|
+| GET | `/dashboard/admin/summary` | Return live student, institution, and application counts | `students.view` |
+| GET | `/applications` | Admin list includes review candidates; other roles are scoped | Authenticated |
+| POST | `/applications/:id/request-documents` | Move an under-review application to documents required | `applications.review` |
+| POST | `/applications/:id/approve` | Approve an under-review application | `applications.approve` |
+| POST | `/applications/:id/reject` | Reject an application with a comment/reason | `applications.reject` |
+
 The public verification response contains certificate status, student name, programme, clinical department, host institution, attachment dates, issue date, and verification timestamp. It never includes passport numbers, phone numbers, addresses, uploaded documents, or internal IDs.
 
 ## Query Conventions

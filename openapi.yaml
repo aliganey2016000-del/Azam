@@ -134,6 +134,13 @@ paths:
         '200': { $ref: '#/components/responses/Success' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  /dashboard/admin/summary:
+    get:
+      tags: [Authentication]
+      summary: Return live administrative summary counts
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
   /placements:
     get:
       tags: [Placements]
