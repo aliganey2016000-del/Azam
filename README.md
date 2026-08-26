@@ -19,6 +19,22 @@ No implementation or source reference documents were present in the workspace at
 - Backend: Node.js, Express, TypeScript, Prisma, PostgreSQL.
 - Operations: Docker, Coolify, Linux VPS, S3-compatible private object storage, optional Redis for background jobs.
 
+## Local Development
+
+1. Copy `.env.example` to `.env` and replace the development secrets if needed.
+2. Start PostgreSQL with `docker compose up -d postgres`.
+3. Install dependencies with `npm install --prefix backend` and `npm install --prefix frontend`.
+4. Generate Prisma Client with `npm run prisma:generate --prefix backend`.
+5. Apply the initial migration with `npm run prisma:migrate --prefix backend`.
+6. Seed demo data with `npm run prisma:seed --prefix backend`.
+7. Run both applications with `npm run dev`.
+
+The API runs on `http://localhost:4000`, and the Vite frontend runs on `http://localhost:5173`. The complete container workflow is `docker compose up --build`. Demo accounts use `DemoPassword!2026` and `@azam.test` addresses only; never use them in production.
+
+## Foundation Commands
+
+`npm run build` builds both applications. `npm test --prefix backend` runs the backend smoke tests. Docker, PostgreSQL migration, and seed execution require Docker Desktop or another Docker-compatible runtime to be installed and running.
+
 ## Planned Repository Structure
 
 ```text

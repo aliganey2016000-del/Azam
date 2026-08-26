@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-azam}
+      POSTGRES_USER: ${POSTGRES_USER:-azam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-azam_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azam} -d ${POSTGRES_DB:-azam}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://azam:azam_dev_password@postgres:5432/azam
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-long-development-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace-with-a-different-long-development-secret}
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:4000/api/v1
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+volumes:
+  postgres_data:

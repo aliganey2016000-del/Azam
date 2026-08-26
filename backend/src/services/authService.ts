@@ -1,0 +1,9 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
+import { prisma } from '../utils/prisma';
+import { ConflictError, UnauthorizedError } from '../utils/errors';
+import { AuthRole, AuthUser } from '../types/auth';
+export async function register(email: string, password: string, accountType: string): Promise<AuthUser> { const exists = await prisma.user.findUnique({ where: { email } }); if (exists) throw new ConflictError('Email is already registered'); const role = await prisma.role.findUnique({ where: { name: accountType === 'STUDENT' ? 'STUDENT' : accountType === 'UNIVERSITY' ? 'UNIVERSITY_USER' : 'ORGANIZATION_USER' } }); if (!role) throw new ConflictError('Account role is not configured'); const user = await prisma.user.create({ data: { email, passwordHash: await bcrypt.hash(password, 12), status: 'ACTIVE', roles: { create: { roleId: role.id } } }, include: { roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } }); return toAuthUser(user); }
+export async function login(email: string, password: string) { const user = await prisma.user.findUnique({ where: { email }, include: { roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } }); if (!user || user.status !== 'ACTIVE' || !(await bcrypt.compare(password, user.passwordHash))) throw new UnauthorizedError('Invalid email or password'); const authUser = toAuthUser(user); return { user: authUser, token: jwt.sign({ sub: user.id }, env.JWT_SECRET, { expiresIn: '15m' }) }; }
+export function toAuthUser(user: { id: string; email: string; status: string; roles: AuthRole[] }): AuthUser { return { id: user.id, email: user.email, status: user.status, roles: user.roles.map((role) => role.role.name), permissions: [...new Set(user.roles.flatMap((role) => role.role.permissions.map((permission) => permission.permission.key)))] }; }
