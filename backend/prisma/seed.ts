@@ -62,26 +62,23 @@ async function main() {
     update: {},
     create: { countryId: country.id, name: 'Demo City' },
   });
-  const programme = await prisma.programme.upsert({
-    where: { name: 'Demo MBBS' },
-    update: {},
-    create: { name: 'Demo MBBS' },
-  });
-  const specialty = await prisma.specialty.upsert({
-    where: { name: 'Demo Internal Medicine' },
-    update: {},
-    create: { name: 'Demo Internal Medicine' },
-  });
-  const university = await prisma.university.upsert({
-    where: { name: 'Demo University' },
-    update: { status: 'APPROVED' },
-    create: { name: 'Demo University', status: 'APPROVED' },
-  });
-  const organization = await prisma.organization.upsert({
-    where: { name: 'Demo Clinical Institution' },
-    update: { status: 'APPROVED' },
-    create: { name: 'Demo Clinical Institution', status: 'APPROVED' },
-  });
+
+  const existingProgramme = await prisma.programme.findFirst({ where: { name: 'Demo MBBS' } });
+  const programme = existingProgramme ?? await prisma.programme.create({ data: { name: 'Demo MBBS' } });
+
+  const existingSpecialty = await prisma.specialty.findFirst({ where: { name: 'Demo Internal Medicine' } });
+  const specialty = existingSpecialty ?? await prisma.specialty.create({ data: { name: 'Demo Internal Medicine' } });
+
+  const existingUniversity = await prisma.university.findFirst({ where: { name: 'Demo University' } });
+  const university = existingUniversity
+    ? await prisma.university.update({ where: { id: existingUniversity.id }, data: { status: 'APPROVED' } })
+    : await prisma.university.create({ data: { name: 'Demo University', status: 'APPROVED' } });
+
+  const existingOrganization = await prisma.organization.findFirst({ where: { name: 'Demo Clinical Institution' } });
+  const organization = existingOrganization
+    ? await prisma.organization.update({ where: { id: existingOrganization.id }, data: { status: 'APPROVED' } })
+    : await prisma.organization.create({ data: { name: 'Demo Clinical Institution', status: 'APPROVED' } });
+
   const department = await prisma.department.upsert({
     where: { organizationId_name: { organizationId: organization.id, name: 'Demo Medicine Department' } },
     update: {},
@@ -139,36 +136,20 @@ async function main() {
       fullName: 'Demo Student',
       source: StudentSource.UNIVERSITY,
       universityId: university.id,
-      programmeId: programme.id,
-      countryId: country.id,
-    },
-  });
-
-  const independentUser = await user('independent.demo@azam.test', role('STUDENT').id);
-  await prisma.student.upsert({
-    where: { userId: independentUser.id },
-    update: {
-      fullName: 'Independent Demo Student',
-      source: StudentSource.INDEPENDENT,
-      universityId: null,
       organizationId: null,
       programmeId: programme.id,
       countryId: country.id,
     },
-    create: {
-      userId: independentUser.id,
-      fullName: 'Independent Demo Student',
-      source: StudentSource.INDEPENDENT,
-      programmeId: programme.id,
-      countryId: country.id,
-    },
   });
 
-  console.log(`Seeded admin: ${adminEmail}`);
-  console.log(`Seeded demo data for ${city.name}, ${specialty.name}, ${department.name}.`);
+  console.log(`Seed complete. Admin: ${admin.email}; demo city: ${city.name}; specialty: ${specialty.name}; department: ${department.name}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-}).finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
