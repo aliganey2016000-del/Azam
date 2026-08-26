@@ -27,6 +27,8 @@ services:
       CORS_ORIGIN: http://localhost:5173
     ports:
       - "4000:4000"
+    volumes:
+      - private_uploads:/app/private-uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,3 +44,4 @@ services:
       - backend
 volumes:
   postgres_data:
+  private_uploads:

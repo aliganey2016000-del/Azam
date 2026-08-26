@@ -141,6 +141,31 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Success' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  /documents:
+    get:
+      tags: [Authentication]
+      summary: List private document metadata in caller scope
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      tags: [Authentication]
+      summary: Upload a private document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, documentType]
+              properties:
+                file: { type: string, format: binary }
+                documentType: { type: string, enum: [PASSPORT, STUDENT_ID, UNIVERSITY_LETTER, TRANSCRIPT, CV, OTHER] }
+                applicationId: { type: string, format: uuid }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
   /placements:
     get:
       tags: [Placements]

@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { authenticate, requirePermission } from '../middleware/auth';
+import * as controller from '../controllers/documentController';
+const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req, file, callback) => callback(null, ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimetype)) });
+router.use(authenticate);
+router.get('/', requirePermission('documents.view'), controller.list);
+router.post('/', requirePermission('documents.create'), upload.single('file'), controller.upload);
+export default router;

@@ -37,6 +37,15 @@ List endpoints return `data.items` and `data.meta` with `page`, `limit`, `total`
 | POST | `/applications/:id/approve` | Approve an application | `applications.approve` |
 | POST | `/applications/:id/reject` | Reject with a reason | `applications.reject` |
 
+## Document Endpoints
+
+| Method | Path | Purpose | Auth |
+|---|---|---|---|
+| GET | `/documents` | List private document metadata within caller scope | `documents.view` |
+| POST | `/documents` | Upload a validated private document using multipart form data | `documents.create` |
+
+Supported document types are `PASSPORT`, `STUDENT_ID`, `UNIVERSITY_LETTER`, `TRANSCRIPT`, `CV`, and `OTHER`. Supported MIME types are PDF, JPEG, PNG, DOC, and DOCX with a 10 MB limit. Private storage keys are never returned as public URLs.
+
 Application state-changing commands create status history, audit entries, and in-app notifications in a transaction.
 | POST | `/auth/forgot-password` | Request password reset | Public |
 | POST | `/auth/reset-password` | Set password with one-time token | Public |

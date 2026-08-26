@@ -12,6 +12,8 @@ services:
     build: { context: ./backend, dockerfile: Dockerfile }
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - private_uploads:/app/private-uploads
     depends_on: [postgres]
   frontend:
     build:
@@ -22,3 +24,4 @@ services:
     depends_on: [backend]
 volumes:
   postgres_data:
+  private_uploads:
