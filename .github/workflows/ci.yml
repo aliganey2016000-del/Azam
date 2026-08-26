@@ -12,6 +12,26 @@ jobs:
     defaults:
       run:
         shell: bash
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: azam
+          POSTGRES_PASSWORD: azam_ci_password
+          POSTGRES_DB: azam_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U azam -d azam_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://azam:azam_ci_password@localhost:5432/azam_test?schema=public
+      JWT_SECRET: ci-only-jwt-secret-change-me-123456789012345
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-change-me-123456789012345
+      CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,11 +54,17 @@ jobs:
       - name: Generate Prisma Client
         run: npm run prisma:generate --prefix backend
 
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+
       - name: Build backend
         run: npm run build --prefix backend
 
       - name: Test backend
         run: npm test --prefix backend
+
+      - name: Typecheck frontend
+        run: npx tsc --noEmit --project frontend/tsconfig.json
 
       - name: Build frontend
         run: npm run build --prefix frontend
