@@ -57,6 +57,18 @@ export const applicationCreateSchema = z
         message: 'Organization affiliation is required for organization applicants',
       });
     }
+
+    if (input.noPreferredInstitution && input.preferredInstitutionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['preferredInstitutionId'],
+        message: 'A preferred institution cannot be selected when noPreferredInstitution is true',
+      });
+    }
+
+    if (!input.noPreferredInstitution && !input.preferredInstitutionId) {
+      // This remains optional at draft stage; AZAAM can assign an institution later.
+    }
   });
 
 export type ApplicationCreateInput = z.infer<typeof applicationCreateSchema>;
