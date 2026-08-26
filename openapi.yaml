@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: AZAAM International Medics Network API
+  version: 1.0.0
+  description: Versioned REST contract for the clinical attachment platform. Organization-specific legal and accreditation claims are TO BE CONFIRMED.
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production domain placeholder
+  - url: http://localhost:4000/api/v1
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+  - name: Applications
+  - name: Placements
+  - name: Certificates
+  - name: Health
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Register an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+  /auth/login:
+    post:
+      tags: [Authentication]
+      security: []
+      summary: Authenticate a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Return the authenticated user and effective permissions
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /applications:
+    get:
+      tags: [Applications]
+      summary: List applications within the caller scope
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/ApplicationStatus' } }
+        - { in: query, name: source, schema: { $ref: '#/components/schemas/StudentSource' } }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      tags: [Applications]
+      summary: Create an application draft
+      description: Independent applicants may omit universityId and organizationId; source must be INDEPENDENT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationCreateRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /applications/{id}/submit:
+    post:
+      tags: [Applications]
+      summary: Submit a complete application draft
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /applications/{id}/approve:
+    post:
+      tags: [Applications]
+      summary: Approve an application
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+  /applications/{id}/reject:
+    post:
+      tags: [Applications]
+      summary: Reject an application with a required reason
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+  /placements:
+    get:
+      tags: [Placements]
+      summary: List placements within the caller scope
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+    post:
+      tags: [Placements]
+      summary: Create a placement
+      description: Confirmation must lock capacity and reject overbooking transactionally.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementCreateRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+  /certificates/verify/{certificateId}:
+    get:
+      tags: [Certificates]
+      security: []
+      summary: Publicly verify a certificate
+      parameters:
+        - in: path
+          name: certificateId
+          required: true
+          schema: { type: string, example: AZAAM-CA-2026-000145 }
+      responses:
+        '200':
+          description: Minimum public certificate information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CertificateVerification' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /health:
+    get:
+      tags: [Health]
+      security: []
+      summary: Process health check
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+  /ready:
+    get:
+      tags: [Health]
+      security: []
+      summary: Application and database readiness check
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id: { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    Page: { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    Search: { in: query, name: search, schema: { type: string, maxLength: 100 } }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, accountType]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12, format: password }
+        accountType: { type: string, enum: [STUDENT, UNIVERSITY, ORGANIZATION] }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    StudentSource: { type: string, enum: [UNIVERSITY, ORGANIZATION, INDEPENDENT] }
+    ApplicationStatus: { type: string, enum: [DRAFT, SUBMITTED, UNDER_REVIEW, DOCUMENTS_REQUIRED, APPROVED, PLACEMENT_PENDING, PLACED, SUPERVISOR_ASSIGNED, ACTIVE, COMPLETED, CERTIFICATE_ISSUED, REJECTED] }
+    ApplicationCreateRequest:
+      type: object
+      required: [studentId, source]
+      properties:
+        studentId: { type: string, format: uuid }
+        universityId: { type: string, format: uuid, nullable: true }
+        organizationId: { type: string, format: uuid, nullable: true }
+        programmeId: { type: string, format: uuid, nullable: true }
+        specialtyId: { type: string, format: uuid, nullable: true }
+        source: { $ref: '#/components/schemas/StudentSource' }
+        preferredStartDate: { type: string, format: date }
+        preferredEndDate: { type: string, format: date }
+        clinicalInterests: { type: string, maxLength: 4000 }
+    PlacementCreateRequest:
+      type: object
+      required: [applicationId, studentId, organizationId, departmentId, startDate, endDate]
+      properties:
+        applicationId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        departmentId: { type: string, format: uuid }
+        specialtyId: { type: string, format: uuid, nullable: true }
+        supervisorId: { type: string, format: uuid, nullable: true }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+    CertificateVerification:
+      type: object
+      required: [certificateId, status, studentName, issueDate, verifiedAt]
+      properties:
+        certificateId: { type: string }
+        status: { type: string, enum: [VALID, REVOKED, EXPIRED] }
+        studentName: { type: string }
+        programme: { type: string, nullable: true }
+        clinicalDepartment: { type: string, nullable: true }
+        hostInstitution: { type: string, nullable: true }
+        attachmentStartDate: { type: string, format: date }
+        attachmentEndDate: { type: string, format: date }
+        issueDate: { type: string, format: date-time }
+        verifiedAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+        errors: { type: array, items: { type: object } }
+  responses:
+    Success:
+      description: Successful operation
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [success, data]
+            properties:
+              success: { type: boolean, example: true }
+              data: {}
+              message: { type: string }
+    Error:
+      description: Error response
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ValidationError: { $ref: '#/components/responses/Error' }
+    UnauthorizedError: { $ref: '#/components/responses/Error' }
+    ForbiddenError: { $ref: '#/components/responses/Error' }
+    ConflictError: { $ref: '#/components/responses/Error' }
+    NotFoundError: { $ref: '#/components/responses/Error' }
