@@ -44,6 +44,13 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Success' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: End the current authenticated session
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
   /auth/me:
     get:
       tags: [Authentication]
@@ -87,7 +94,7 @@ paths:
     post:
       tags: [Applications]
       summary: Create an application draft
-      description: Independent applicants may omit universityId and organizationId; source must be INDEPENDENT.
+      description: The authenticated student's source and affiliation must match the submitted application. Independent applicants must omit universityId and organizationId.
       requestBody:
         required: true
         content:
@@ -97,6 +104,7 @@ paths:
         '201': { $ref: '#/components/responses/Success' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
   /applications/{id}/submit:
     post:
       tags: [Applications]
@@ -235,7 +243,11 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 12, format: password }
-        accountType: { type: string, enum: [STUDENT, UNIVERSITY, ORGANIZATION] }
+        accountType: { type: string, enum: [STUDENT, UNIVERSITY, ORGANIZATION, SUPERVISOR] }
+        source: { $ref: '#/components/schemas/StudentSource' }
+        fullName: { type: string, minLength: 2, maxLength: 160 }
+        phone: { type: string, maxLength: 40 }
+        nationality: { type: string, maxLength: 100 }
     LoginRequest:
       type: object
       required: [email, password]
@@ -246,17 +258,20 @@ components:
     ApplicationStatus: { type: string, enum: [DRAFT, SUBMITTED, UNDER_REVIEW, DOCUMENTS_REQUIRED, APPROVED, PLACEMENT_PENDING, PLACED, SUPERVISOR_ASSIGNED, ACTIVE, COMPLETED, CERTIFICATE_ISSUED, REJECTED] }
     ApplicationCreateRequest:
       type: object
-      required: [studentId, source]
+      required: [source]
       properties:
-        studentId: { type: string, format: uuid }
         universityId: { type: string, format: uuid, nullable: true }
         organizationId: { type: string, format: uuid, nullable: true }
         programmeId: { type: string, format: uuid, nullable: true }
         specialtyId: { type: string, format: uuid, nullable: true }
+        preferredCountryId: { type: string, format: uuid, nullable: true }
+        preferredCityId: { type: string, format: uuid, nullable: true }
         source: { $ref: '#/components/schemas/StudentSource' }
         preferredStartDate: { type: string, format: date }
         preferredEndDate: { type: string, format: date }
         clinicalInterests: { type: string, maxLength: 4000 }
+        preferredInstitutionId: { type: string, format: uuid, nullable: true }
+        noPreferredInstitution: { type: boolean, default: false }
     StudentProfileRequest:
       type: object
       required: [fullName]
