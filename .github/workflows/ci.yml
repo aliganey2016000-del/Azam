@@ -55,7 +55,7 @@ jobs:
         run: npm run prisma:generate --prefix backend
 
       - name: Apply Prisma migrations
-        run: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+        run: npm run prisma:migrate:deploy --prefix backend
 
       - name: Build backend
         run: npm run build --prefix backend
