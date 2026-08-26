@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { ConflictError, UnauthorizedError } from '../utils/errors';
 import { AuthRole, AuthUser } from '../types/auth';
+import { prisma } from '../utils/prisma';
 
 type RegisterInput = {
   email: string;
