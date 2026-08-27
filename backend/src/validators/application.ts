@@ -72,3 +72,22 @@ export const applicationCreateSchema = z
   });
 
 export type ApplicationCreateInput = z.infer<typeof applicationCreateSchema>;
+
+export const applicationStatusUpdateSchema = z.object({
+  status: z.enum([
+    'DRAFT',
+    'SUBMITTED',
+    'UNDER_REVIEW',
+    'DOCUMENTS_REQUIRED',
+    'APPROVED',
+    'PLACEMENT_PENDING',
+    'PLACED',
+    'SUPERVISOR_ASSIGNED',
+    'ACTIVE',
+    'COMPLETED',
+    'CERTIFICATE_ISSUED',
+    'REJECTED',
+  ]),
+  comment: z.string().max(2000).optional(),
+});
+

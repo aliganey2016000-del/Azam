@@ -8,7 +8,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('azam_token');
+  const token = localStorage.getItem('azam_token') || sessionStorage.getItem('azam_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

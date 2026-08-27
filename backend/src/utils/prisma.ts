@@ -26,6 +26,10 @@ class InMemoryDb {
   applicationDocuments: any[] = [];
   applicationStatusHistories: any[] = [];
   placements: any[] = [];
+  attendance: any[] = [];
+  logbookEntries: any[] = [];
+  evaluations: any[] = [];
+  certificates: any[] = [];
   notifications: any[] = [];
   auditLogs: any[] = [];
 
@@ -147,7 +151,7 @@ class InMemoryDb {
     const supUser = { id: randomUUID(), email: 'supervisor.demo@azam.test', passwordHash, status: 'ACTIVE', createdAt: new Date(), updatedAt: new Date() };
     this.users.push(supUser);
     this.userRoles.push({ userId: supUser.id, roleId: supervisorRole.id });
-    this.supervisors.push({ id: randomUUID(), userId: supUser.id, organizationId });
+    this.supervisors.push({ id: randomUUID(), userId: supUser.id, organizationId, name: 'Dr. Sarah Al-Mansoor', specialty: 'Internal Medicine', department: 'Demo Medicine Department' });
 
     // Seed a demo application for the student
     const sampleApp = {
@@ -171,6 +175,148 @@ class InMemoryDb {
       updatedAt: new Date(),
     };
     this.applications.push(sampleApp);
+
+    // Seed a placement and clinical attachment
+    const placementId = randomUUID();
+    const attachmentId = randomUUID();
+    const supervisorId = this.supervisors[0].id;
+    this.placements.push({
+      id: placementId,
+      applicationId: sampleApp.id,
+      studentId: studentRecord.id,
+      organizationId,
+      departmentId,
+      specialtyId,
+      supervisorId,
+      startDate: new Date(Date.now() - 10 * 86400000),
+      endDate: new Date(Date.now() + 50 * 86400000),
+      status: 'ACTIVE',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Seed attendance records
+    for (let i = 1; i <= 5; i++) {
+      this.attendance.push({
+        id: randomUUID(),
+        attachmentId,
+        placementId,
+        studentId: studentRecord.id,
+        date: new Date(Date.now() - i * 86400000),
+        status: i === 4 ? 'LATE' : 'PRESENT',
+        checkIn: new Date(Date.now() - i * 86400000 + 8 * 3600000),
+        checkOut: new Date(Date.now() - i * 86400000 + 16 * 3600000),
+        comment: i === 4 ? 'Arrived 15 mins late due to hospital orientation briefing' : 'Completed ward rounds on time',
+      });
+    }
+
+    // Seed logbook entries
+    this.logbookEntries.push({
+      id: randomUUID(),
+      attachmentId,
+      placementId,
+      studentId: studentRecord.id,
+      date: new Date(Date.now() - 2 * 86400000),
+      clinicalArea: 'Internal Medicine Ward',
+      content: { procedure: 'ECG interpretation & Patient admission review', casesCount: 4, reflection: 'Observed differential diagnosis for acute chest discomfort.' },
+      status: 'VERIFIED',
+      supervisorComment: 'Solid diagnostic acumen and thorough clinical note-taking.',
+    });
+    this.logbookEntries.push({
+      id: randomUUID(),
+      attachmentId,
+      placementId,
+      studentId: studentRecord.id,
+      date: new Date(Date.now() - 1 * 86400000),
+      clinicalArea: 'Outpatient Cardiology Clinic',
+      content: { procedure: 'Echocardiogram observation and history taking', casesCount: 6, reflection: 'Gained familiarity with valvular regurgitation murmurs.' },
+      status: 'SUBMITTED',
+      supervisorComment: null,
+    });
+
+    // Seed evaluations
+    this.evaluations.push({
+      id: randomUUID(),
+      attachmentId,
+      placementId,
+      studentId: studentRecord.id,
+      type: 'MID_TERM',
+      status: 'COMPLETED',
+      submittedById: supUser.id,
+      score: 88.5,
+      maximum: 100,
+      submittedDate: new Date(Date.now() - 3 * 86400000),
+      feedback: 'Excellent attendance, respectful patient communication, and strong core medical knowledge.',
+    });
+
+    // Seed certificates
+    this.certificates.push({
+      id: randomUUID(),
+      certificateNumber: 'AZM-CERT-2026-0042',
+      attachmentId,
+      studentId: studentRecord.id,
+      status: 'VALID',
+      issueDate: new Date(Date.now() - 1 * 86400000),
+      recipientName: 'Demo Student',
+      programmeName: 'Demo MBBS',
+      specialtyName: 'Demo Internal Medicine',
+      institutionName: 'Demo Clinical Institution',
+    });
+
+    // Seed notifications
+    this.notifications.push({
+      id: randomUUID(),
+      recipientId: adminUser.id,
+      title: 'New Clinical Application Received',
+      message: 'Student Demo Student submitted application AZM-2026-DEMO01 for review.',
+      type: 'APPLICATION_SUBMITTED',
+      read: false,
+      createdAt: new Date(Date.now() - 30 * 60000),
+    });
+    this.notifications.push({
+      id: randomUUID(),
+      recipientId: adminUser.id,
+      title: 'Logbook Submission Pending Review',
+      message: 'Dr. Sarah Al-Mansoor reviewed 2 logbook entries for Internal Medicine.',
+      type: 'LOGBOOK_REVIEW',
+      read: true,
+      createdAt: new Date(Date.now() - 2 * 3600000),
+    });
+    this.notifications.push({
+      id: randomUUID(),
+      recipientId: adminUser.id,
+      title: 'University Agreement Verification',
+      message: 'Demo University updated coordinator contact information.',
+      type: 'INSTITUTION_UPDATE',
+      read: true,
+      createdAt: new Date(Date.now() - 24 * 3600000),
+    });
+
+    // Seed audit logs
+    this.auditLogs.push({
+      id: randomUUID(),
+      userId: adminUser.id,
+      userEmail: adminUser.email,
+      action: 'APPLICATION_REVIEW',
+      entity: 'Application',
+      entityId: sampleApp.id,
+      details: 'Admin opened application AZM-2026-DEMO01 for verification.',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0 (AZAAM Staff Admin Shell)',
+      createdAt: new Date(Date.now() - 15 * 60000),
+    });
+    this.auditLogs.push({
+      id: randomUUID(),
+      userId: adminUser.id,
+      userEmail: adminUser.email,
+      action: 'SYSTEM_SETTINGS_UPDATE',
+      entity: 'SystemSetting',
+      entityId: 'general_portal_config',
+      details: 'Audit logging policy and notification dispatch parameters verified.',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0 (AZAAM Staff Admin Shell)',
+      createdAt: new Date(Date.now() - 2 * 86400000),
+    });
   }
 
   getUserWithRoles(user: any) {
@@ -472,6 +618,20 @@ export const inMemoryPrisma: any = {
   },
 
   supervisor: {
+    findMany: async () => memory.supervisors.map(s => ({
+      ...s,
+      organization: memory.organizations.find(o => o.id === s.organizationId) || null,
+      user: memory.users.find(u => u.id === s.userId) || null,
+    })),
+    findUnique: async ({ where }: any) => {
+      const s = memory.supervisors.find(item => item.id === where.id || item.userId === where.userId);
+      if (!s) return null;
+      return {
+        ...s,
+        organization: memory.organizations.find(o => o.id === s.organizationId) || null,
+        user: memory.users.find(u => u.id === s.userId) || null,
+      };
+    },
     upsert: async ({ where, update, create }: any) => {
       const s = memory.supervisors.find(item => item.userId === where.userId);
       if (s) { Object.assign(s, update); return s; }
@@ -479,6 +639,151 @@ export const inMemoryPrisma: any = {
       memory.supervisors.push(newS);
       return newS;
     },
+    count: async () => memory.supervisors.length,
+  },
+
+  placement: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.placements.filter(p => matchesFilter(p, where)).map(p => ({
+        ...p,
+        student: memory.getStudentWithRelations(memory.students.find(s => s.id === p.studentId)),
+        organization: memory.organizations.find(o => o.id === p.organizationId) || null,
+        department: memory.departments.find(d => d.id === p.departmentId) || null,
+        specialty: memory.specialties.find(s => s.id === p.specialtyId) || null,
+        supervisor: memory.supervisors.find(s => s.id === p.supervisorId) || null,
+        application: memory.applications.find(a => a.id === p.applicationId) || null,
+      }));
+    },
+    findUnique: async ({ where }: any) => {
+      const p = memory.placements.find(item => item.id === where.id || item.applicationId === where.applicationId);
+      if (!p) return null;
+      return {
+        ...p,
+        student: memory.getStudentWithRelations(memory.students.find(s => s.id === p.studentId)),
+        organization: memory.organizations.find(o => o.id === p.organizationId) || null,
+        department: memory.departments.find(d => d.id === p.departmentId) || null,
+        specialty: memory.specialties.find(s => s.id === p.specialtyId) || null,
+        supervisor: memory.supervisors.find(s => s.id === p.supervisorId) || null,
+        application: memory.applications.find(a => a.id === p.applicationId) || null,
+      };
+    },
+    create: async ({ data }: any) => {
+      const p = { id: randomUUID(), createdAt: new Date(), updatedAt: new Date(), ...data };
+      memory.placements.push(p);
+      return p;
+    },
+    count: async ({ where }: any = {}) => memory.placements.filter(p => matchesFilter(p, where)).length,
+  },
+
+  attendance: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.attendance.filter(a => matchesFilter(a, where)).map(a => ({
+        ...a,
+        student: memory.students.find(s => s.id === a.studentId) || null,
+      }));
+    },
+    create: async ({ data }: any) => {
+      const a = { id: randomUUID(), ...data };
+      memory.attendance.push(a);
+      return a;
+    },
+  },
+
+  logbookEntry: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.logbookEntries.filter(l => matchesFilter(l, where)).map(l => ({
+        ...l,
+        student: memory.students.find(s => s.id === l.studentId) || null,
+      }));
+    },
+    create: async ({ data }: any) => {
+      const l = { id: randomUUID(), ...data };
+      memory.logbookEntries.push(l);
+      return l;
+    },
+  },
+
+  evaluation: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.evaluations.filter(e => matchesFilter(e, where)).map(e => ({
+        ...e,
+        student: memory.students.find(s => s.id === e.studentId) || null,
+      }));
+    },
+    create: async ({ data }: any) => {
+      const e = { id: randomUUID(), ...data };
+      memory.evaluations.push(e);
+      return e;
+    },
+  },
+
+  certificate: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.certificates.filter(c => matchesFilter(c, where)).map(c => ({
+        ...c,
+        student: memory.students.find(s => s.id === c.studentId) || null,
+      }));
+    },
+    findUnique: async ({ where }: any) => {
+      return memory.certificates.find(c => (where.id && c.id === where.id) || (where.certificateNumber && c.certificateNumber === where.certificateNumber)) || null;
+    },
+    create: async ({ data }: any) => {
+      const c = { id: randomUUID(), status: 'VALID', issueDate: new Date(), ...data };
+      memory.certificates.push(c);
+      return c;
+    },
+    update: async ({ where, data }: any) => {
+      const c = memory.certificates.find(item => item.id === where.id || item.certificateNumber === where.certificateNumber);
+      if (c) Object.assign(c, data);
+      return c;
+    },
+  },
+
+  notification: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.notifications.filter(n => matchesFilter(n, where));
+    },
+    create: async ({ data }: any) => {
+      const notif = { id: randomUUID(), createdAt: new Date(), read: false, ...data };
+      memory.notifications.push(notif);
+      return notif;
+    },
+    update: async ({ where, data }: any) => {
+      const n = memory.notifications.find(item => item.id === where.id);
+      if (n) Object.assign(n, data);
+      return n;
+    },
+    updateMany: async ({ where, data }: any) => {
+      let count = 0;
+      memory.notifications.forEach(n => {
+        if (matchesFilter(n, where)) {
+          Object.assign(n, data);
+          count++;
+        }
+      });
+      return { count };
+    },
+  },
+
+  auditLog: {
+    findMany: async ({ where }: any = {}) => {
+      return memory.auditLogs.filter(a => matchesFilter(a, where));
+    },
+    create: async ({ data }: any) => {
+      const log = { id: randomUUID(), createdAt: new Date(), ...data };
+      memory.auditLogs.push(log);
+      return log;
+    },
+  },
+
+  systemSetting: {
+    findMany: async () => [
+      { id: '1', key: 'platform_name', value: { name: 'AZAAM International Medics Network', shortName: 'AZAAM' }, updatedAt: new Date() },
+      { id: '2', key: 'academic_year', value: { current: '2026-2027', term: 'Fall/Spring Clinical Cycle' }, updatedAt: new Date() },
+      { id: '3', key: 'application_window', value: { open: true, deadline: '2026-12-31' }, updatedAt: new Date() },
+      { id: '4', key: 'security_policy', value: { jwtExpiry: '24h', requireMfaForSuperAdmin: true, auditRetentionDays: 365 }, updatedAt: new Date() },
+    ],
+    upsert: async ({ where, update, create }: any) => ({ id: randomUUID(), key: where.key, value: create?.value || update?.value, updatedAt: new Date() }),
   },
 
   department: {
@@ -612,36 +917,17 @@ export const inMemoryPrisma: any = {
       return doc;
     },
   },
-
-  notification: {
-    create: async ({ data }: any) => {
-      const notif = { id: randomUUID(), createdAt: new Date(), read: false, ...data };
-      memory.notifications.push(notif);
-      return notif;
-    },
-  },
-
-  auditLog: {
-    create: async ({ data }: any) => {
-      const log = { id: randomUUID(), createdAt: new Date(), ...data };
-      memory.auditLogs.push(log);
-      return log;
-    },
-  },
 };
 
-let prismaInstance: any;
+let prismaInstance: any = inMemoryPrisma;
 
-try {
-  // If a valid PostgreSQL connection string is configured and not the mock default
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('mock:mock')) {
+if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('mock') && !process.env.DATABASE_URL.includes('localhost')) {
+  try {
     prismaInstance = new PrismaClient();
-  } else {
+  } catch (e) {
+    console.warn('[AI Studio] Using in-memory database store');
     prismaInstance = inMemoryPrisma;
   }
-} catch (e) {
-  console.warn('[AI Studio] PostgreSQL not connected — using robust in-memory database mock', e);
-  prismaInstance = inMemoryPrisma;
 }
 
 export const prisma = prismaInstance;

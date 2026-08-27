@@ -1,2 +1,12 @@
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { environment: 'node', setupFiles: ['./tests/setup.ts'] } });
+import path from 'path';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    setupFiles: [path.resolve(__dirname, 'tests/setup.ts')],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+  },
+});
+
+
