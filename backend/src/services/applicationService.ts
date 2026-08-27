@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { ApplicationStatus, StudentSource } from '@prisma/client';
+import { ApplicationStatus, StudentSource } from '../types/auth';
 import { prisma } from '../utils/prisma';
 import { ConflictError, ForbiddenError, NotFoundError } from '../utils/errors';
 import type { ApplicationCreateInput } from '../validators/application';
@@ -130,11 +130,11 @@ export async function transitionApplication(
     throw new ForbiddenError();
   }
 
-  if (!transitions[app.status].includes(target)) {
+  if (!transitions[app.status as ApplicationStatus].includes(target)) {
     throw new ConflictError(`Cannot change application from ${app.status} to ${target}`);
   }
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     const updated = await tx.application.update({
       where: { id },
       data: {

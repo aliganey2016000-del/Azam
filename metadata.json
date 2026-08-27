@@ -1,0 +1,6 @@
+{
+  "name": "AZAAM Platform",
+  "description": "Connected platform for clinical attachment and supervised medical training pathways for students, universities, host organizations, and clinical supervisors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

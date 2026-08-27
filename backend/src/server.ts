@@ -1,6 +1,25 @@
 import { env } from './config/env';
-import app from './app';
+import app, { setupFrontend } from './app';
 import { prisma } from './utils/prisma';
-const server = app.listen(env.PORT, () => console.log(`AZAAM API listening on port ${env.PORT}`));
-const shutdown = async () => { server.close(); await prisma.$disconnect(); process.exit(0); };
-process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);
+
+async function startServer() {
+  await setupFrontend(app);
+
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
+    console.log(`AZAAM API and App running on http://0.0.0.0:${env.PORT}`);
+  });
+
+  const shutdown = async () => {
+    server.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

@@ -1,12 +1,45 @@
 {
   "name": "azam-platform",
   "private": true,
+  "type": "module",
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "prebuild": "npm run install:all",
-    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "test": "npm test --prefix backend"
+    "dev": "tsx backend/src/server.ts",
+    "build": "vite build --config frontend/vite.config.ts && tsc -p backend/tsconfig.json",
+    "start": "node backend/dist/server.js",
+    "lint": "tsc --noEmit -p backend/tsconfig.json && tsc --noEmit -p frontend/tsconfig.json"
   },
-  "devDependencies": { "concurrently": "^9.1.2" }
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "@tanstack/react-query": "^5.85.0",
+    "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.0",
+    "multer": "^2.0.2",
+    "pino-http": "^10.5.0",
+    "prisma": "^6.14.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hook-form": "^7.62.0",
+    "react-router-dom": "^7.8.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.2.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
 }
