@@ -3,7 +3,16 @@ import { Bell, Check, Clock, ExternalLink } from 'lucide-react';
 import { adminService } from '../../services/admin.service';
 import { NotificationRecord } from '../../types/admin.types';
 
-export const NotificationsMenu: React.FC = () => {
+interface NotificationsMenuProps {
+  /**
+   * 'admin' hits the SUPER_ADMIN/AZAAM_STAFF oversight endpoints (/admin/notifications).
+   * 'self' (default) hits the genuine per-user endpoints (/notifications) available to every
+   * authenticated role -- STUDENT, SUPERVISOR, UNIVERSITY_USER, ORGANIZATION_USER included.
+   */
+  scope?: 'admin' | 'self';
+}
+
+export const NotificationsMenu: React.FC<NotificationsMenuProps> = ({ scope = 'self' }) => {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +21,7 @@ export const NotificationsMenu: React.FC = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const items = await adminService.getNotifications();
+      const items = scope === 'admin' ? await adminService.getNotifications() : await adminService.getMyNotifications();
       setNotifications(items);
     } catch {
       // ignore
@@ -39,7 +48,8 @@ export const NotificationsMenu: React.FC = () => {
 
   const handleMarkAllRead = async () => {
     try {
-      await adminService.markAllNotificationsRead();
+      if (scope === 'admin') await adminService.markAllNotificationsRead();
+      else await adminService.markAllMyNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch {
       // handle
@@ -49,7 +59,8 @@ export const NotificationsMenu: React.FC = () => {
   const handleMarkOne = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await adminService.markNotificationRead(id);
+      if (scope === 'admin') await adminService.markNotificationRead(id);
+      else await adminService.markMyNotificationRead(id);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );

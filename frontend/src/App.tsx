@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { AdminLayout } from './components/layout/AdminLayout';
+import { NotificationsMenu } from './components/layout/NotificationsMenu';
 
 // Admin Pages
 import { DashboardPage } from './pages/admin/DashboardPage';
@@ -470,15 +471,18 @@ function LegacyDashboard({ role }: { role: string }) {
           <Mark />
           <span className="brand-copy"><strong>AZAAM</strong><small>{role.replace('_', ' ')}</small></span>
         </NavLink>
-        <button
-          className="button secondary"
-          onClick={() => {
-            logout();
-            window.location.href = '/login';
-          }}
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <NotificationsMenu scope="self" />
+          <button
+            className="button secondary"
+            onClick={() => {
+              logout();
+              window.location.href = '/login';
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </nav>
       <main className="dashboard">
         <div className="eyebrow">Operational workspace</div>

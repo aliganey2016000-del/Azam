@@ -27,6 +27,15 @@ export const DocumentsPage: React.FC = () => {
     loadData();
   }, []);
 
+  const handleDownload = async (item: DocumentRecord) => {
+    try {
+      await adminService.downloadDocument(item.id, item.fileName || item.title);
+      success('Download started.');
+    } catch (err: any) {
+      error(err?.response?.data?.message || 'Failed to download document.');
+    }
+  };
+
   const columns: Column<DocumentRecord>[] = [
     {
       key: 'title',
@@ -76,7 +85,10 @@ export const DocumentsPage: React.FC = () => {
       align: 'right',
       render: (item) => (
         <button
-          onClick={() => success('File preview opened.')}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload(item);
+          }}
           className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
           title="Download File"
         >

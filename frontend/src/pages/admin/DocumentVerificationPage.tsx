@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { FileCheck, CheckCircle2, XCircle, Download, FileText } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { adminService } from '../../services/admin.service';
 import { DocumentRecord } from '../../types/admin.types';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export const DocumentVerificationPage: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rejectTarget, setRejectTarget] = useState<DocumentRecord | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
   const { success, error } = useToast();
 
   const loadData = async () => {
     setLoading(true);
     try {
       const items = await adminService.getDocuments();
-      setDocuments(items);
+      setDocuments(items.filter((d) => d.status === 'PENDING'));
     } catch (err: any) {
       error(err?.response?.data?.message || 'Failed to fetch pending documents.');
     } finally {
@@ -27,12 +30,27 @@ export const DocumentVerificationPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleVerifyDoc = (docId: string, verified: boolean) => {
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === docId ? { ...d, status: verified ? 'VERIFIED' : 'REJECTED' } : d))
-    );
-    if (verified) success('Document marked verified.');
-    else error('Document rejected.');
+  const handleVerify = async (doc: DocumentRecord) => {
+    try {
+      await adminService.verifyDocument(doc.id);
+      success('Document marked verified.');
+      loadData();
+    } catch (err: any) {
+      error(err?.response?.data?.message || 'Failed to verify document.');
+    }
+  };
+
+  const handleReject = async (reason?: string) => {
+    if (!rejectTarget) return;
+    try {
+      await adminService.rejectDocument(rejectTarget.id, reason || '');
+      error(`Document rejected.`);
+      setRejectTarget(null);
+      setRejectOpen(false);
+      loadData();
+    } catch (err: any) {
+      error(err?.response?.data?.message || 'Failed to reject document.');
+    }
   };
 
   const columns: Column<DocumentRecord>[] = [
@@ -74,13 +92,16 @@ export const DocumentVerificationPage: React.FC = () => {
       render: (item) => (
         <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => handleVerifyDoc(item.id, true)}
+            onClick={() => handleVerify(item)}
             className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 shadow-2xs"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> Verify
           </button>
           <button
-            onClick={() => handleVerifyDoc(item.id, false)}
+            onClick={() => {
+              setRejectTarget(item);
+              setRejectOpen(true);
+            }}
             className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1"
           >
             <XCircle className="w-3.5 h-3.5" /> Reject
@@ -92,6 +113,21 @@ export const DocumentVerificationPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        isOpen={rejectOpen}
+        onClose={() => {
+          setRejectTarget(null);
+          setRejectOpen(false);
+        }}
+        onConfirm={handleReject}
+        title="Reject Document"
+        message={`Reject "${rejectTarget?.title || rejectTarget?.fileName || 'this document'}"? The applicant will be notified and asked to re-upload.`}
+        confirmLabel="Reject Document"
+        variant="danger"
+        requireReason={true}
+        reasonPlaceholder="e.g. Document is illegible, expired, or does not match the required type..."
+      />
+
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           Document Verification Queue

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const permissions = ['students.view','students.create','students.update','applications.view','applications.create','applications.review','applications.approve','applications.reject','documents.view','documents.create','organizations.view','organizations.create','organizations.approve','placements.view','placements.create','placements.update','certificates.view','certificates.issue','certificates.revoke','reports.view','reports.export','audit_logs.view','settings.manage'];
+const permissions = ['students.view','students.create','students.update','applications.view','applications.create','applications.review','applications.approve','applications.reject','documents.view','documents.create','documents.verify','documents.reject','documents.delete','documents.download','organizations.view','organizations.create','organizations.approve','placements.view','placements.create','placements.update','certificates.view','certificates.issue','certificates.revoke','certificates.verify','notifications.view','notifications.manage','reports.view','reports.export','audit_logs.view','settings.manage'];
 const roles = ['SUPER_ADMIN','AZAAM_STAFF','UNIVERSITY_USER','ORGANIZATION_USER','SUPERVISOR','STUDENT'];
 
 const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin.demo@azam.test';
@@ -35,9 +35,23 @@ async function main() {
     skipDuplicates: true,
   });
 
-  const studentPermissionKeys = ['students.view', 'students.update', 'applications.view', 'applications.create', 'documents.view', 'documents.create'];
+  const studentPermissionKeys = ['students.view', 'students.update', 'applications.view', 'applications.create', 'documents.view', 'documents.create', 'documents.download'];
   await prisma.rolePermission.createMany({
     data: studentPermissionKeys.map((key) => ({ roleId: role('STUDENT').id, permissionId: permission(key).id })),
+    skipDuplicates: true,
+  });
+
+  // University/organization staff can view and download documents belonging to their own
+  // affiliated students (see documentService.ts resource-scoping) -- grant just enough
+  // permission for that read-only oversight; verification/rejection stays SUPER_ADMIN/
+  // AZAAM_STAFF-only to keep compliance decisions with AZAAM platform staff.
+  const affiliatePermissionKeys = ['documents.view', 'documents.download'];
+  await prisma.rolePermission.createMany({
+    data: affiliatePermissionKeys.map((key) => ({ roleId: role('UNIVERSITY_USER').id, permissionId: permission(key).id })),
+    skipDuplicates: true,
+  });
+  await prisma.rolePermission.createMany({
+    data: affiliatePermissionKeys.map((key) => ({ roleId: role('ORGANIZATION_USER').id, permissionId: permission(key).id })),
     skipDuplicates: true,
   });
 

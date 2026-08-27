@@ -46,6 +46,7 @@ enum DocumentStatus {
   PENDING
   VERIFIED
   REJECTED
+  SUPERSEDED
   EXPIRED
 }
 
@@ -273,17 +274,26 @@ model Application {
 }
 
 model Document {
-  id            String               @id @default(uuid()) @db.Uuid
-  ownerId       String               @db.Uuid
-  documentType  String
-  fileName      String
-  filePath      String
-  mimeType      String
-  fileSize      Int
-  status        DocumentStatus       @default(PENDING)
-  uploadedById  String               @db.Uuid
-  createdAt     DateTime             @default(now())
-  applications  ApplicationDocument[]
+  id                 String               @id @default(uuid()) @db.Uuid
+  ownerId            String               @db.Uuid
+  documentType       String
+  fileName           String
+  filePath           String
+  mimeType           String
+  fileSize           Int
+  status             DocumentStatus       @default(PENDING)
+  uploadedById       String               @db.Uuid
+  rejectionReason    String?
+  reviewedById       String?              @db.Uuid
+  reviewedAt         DateTime?
+  // Self-relation: when a document is re-uploaded to replace a REJECTED/EXPIRED one, the new
+  // Document row records which document it supersedes so history is preserved instead of lost.
+  // The old document's status is set to SUPERSEDED rather than being deleted or overwritten.
+  replacesDocumentId String?              @unique @db.Uuid
+  replaces           Document?            @relation("DocumentSupersedes", fields: [replacesDocumentId], references: [id])
+  supersededBy       Document?            @relation("DocumentSupersedes")
+  createdAt          DateTime             @default(now())
+  applications       ApplicationDocument[]
 
   @@index([ownerId, status])
 }
@@ -400,15 +410,18 @@ model Certificate {
   status           CertificateStatus      @default(VALID)
   issueDate        DateTime
   revokedReason    String?
+  revokedAt        DateTime?
+  revokedById      String?                @db.Uuid
   attachment       ClinicalAttachment    @relation(fields: [attachmentId], references: [id])
   verification     CertificateVerification?
 }
 
 model CertificateVerification {
-  id             String      @id @default(uuid()) @db.Uuid
-  certificateId  String      @unique @db.Uuid
-  lastVerifiedAt DateTime?
-  certificate    Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  id                String      @id @default(uuid()) @db.Uuid
+  certificateId     String      @unique @db.Uuid
+  lastVerifiedAt    DateTime?
+  verificationCount Int         @default(0)
+  certificate       Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
 }
 
 model Notification {

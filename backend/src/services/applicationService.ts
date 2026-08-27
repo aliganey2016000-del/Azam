@@ -3,6 +3,8 @@ import { ApplicationStatus, StudentSource } from '../types/auth';
 import { prisma } from '../utils/prisma';
 import { ConflictError, ForbiddenError, NotFoundError } from '../utils/errors';
 import type { ApplicationCreateInput } from '../validators/application';
+import { getApplicationDocumentEligibility } from './documentRequirementService';
+import { notify } from './notificationService';
 
 const transitions: Record<ApplicationStatus, ApplicationStatus[]> = {
   DRAFT: ['SUBMITTED'],
@@ -134,6 +136,17 @@ export async function transitionApplication(
     throw new ConflictError(`Cannot change application from ${app.status} to ${target}`);
   }
 
+  if (target === 'APPROVED') {
+    const eligibility = await getApplicationDocumentEligibility(id);
+    if (eligibility.verdict !== 'ELIGIBLE') {
+      const details: string[] = [];
+      if (eligibility.missingTypes.length) details.push(`missing: ${eligibility.missingTypes.join(', ')}`);
+      if (eligibility.rejectedTypes.length) details.push(`rejected: ${eligibility.rejectedTypes.join(', ')}`);
+      if (!details.length) details.push('one or more mandatory documents are still awaiting verification');
+      throw new ConflictError(`Application cannot be approved until required documents are verified (${details.join('; ')})`);
+    }
+  }
+
   return prisma.$transaction(async (tx: any) => {
     const updated = await tx.application.update({
       where: { id },
@@ -164,13 +177,20 @@ export async function transitionApplication(
       },
     });
 
-    await tx.notification.create({
-      data: {
-        recipientId: app.student.userId,
-        title: `Application ${target.toLowerCase()}`,
-        message: comment ?? `Your application status is now ${target}.`,
-        type: 'APPLICATION',
-      },
+    const notificationType = target === 'APPROVED' ? 'APPLICATION_APPROVED' : target === 'REJECTED' ? 'APPLICATION_REJECTED' : 'APPLICATION';
+
+    await notify(tx, {
+      recipientId: app.student.userId,
+      title: `Application ${target.toLowerCase()}`,
+      message: comment ?? `Your application status is now ${target}.`,
+      type: notificationType,
+      email:
+        target === 'APPROVED'
+          ? {
+              subject: 'Your AZAAM application has been approved',
+              html: `<p>Good news -- your clinical attachment application (${app.applicationNumber}) has been approved.</p><p>You will be notified as soon as your placement is confirmed.</p>`,
+            }
+          : null,
     });
 
     return updated;

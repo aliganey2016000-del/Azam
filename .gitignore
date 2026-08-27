@@ -6,3 +6,8 @@ coverage/
 *.tsbuildinfo
 frontend/.env.local
 backend/.env
+backend/private-uploads/
+backend/.devpgdata/
+backend/.pgdata-test/
+backend/tests/.test-db-url.json
+backend/.test-uploads/

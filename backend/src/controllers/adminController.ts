@@ -133,8 +133,8 @@ export async function checkCertificateVerification(req: Request, res: Response, 
 export async function revokeCert(req: Request, res: Response, next: NextFunction) {
   try {
     const id = String(req.params.id);
-    const reason = String(req.body.reason || 'Administrative revocation');
-    return success(res, await revokeCertificate(id, reason), 'Certificate status updated to REVOKED');
+    const reason = String(req.body.reason || '').trim();
+    return success(res, await revokeCertificate(req.authUser!.id, id, reason), 'Certificate status updated to REVOKED');
   } catch (error) {
     next(error);
   }
@@ -182,7 +182,7 @@ export async function listNotifications(req: Request, res: Response, next: NextF
 
 export async function markRead(req: Request, res: Response, next: NextFunction) {
   try {
-    return success(res, await markNotificationRead(String(req.params.id)));
+    return success(res, await markNotificationRead(req.authUser!.id, req.authUser!.roles, String(req.params.id)));
   } catch (error) {
     next(error);
   }

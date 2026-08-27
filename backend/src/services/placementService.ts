@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../utils/prisma';
 import { ConflictError, ForbiddenError, NotFoundError } from '../utils/errors';
+import { notify } from './notificationService';
 
 export interface CreatePlacementInput {
   applicationId: string;
@@ -124,13 +125,11 @@ export async function createPlacement(actorId: string, roles: string[], input: C
       },
     });
 
-    await tx.notification.create({
-      data: {
-        recipientId: app.student.userId,
-        title: 'Clinical Placement Confirmed',
-        message: `Your clinical attachment at ${placement.organization.name} has been assigned starting ${startDate.toISOString().split('T')[0]}.`,
-        type: 'PLACEMENT',
-      },
+    await notify(tx, {
+      recipientId: app.student.userId,
+      title: 'Clinical Placement Confirmed',
+      message: `Your clinical attachment at ${placement.organization.name} has been assigned starting ${startDate.toISOString().split('T')[0]}.`,
+      type: 'PLACEMENT',
     });
 
     return { placement, attachment };
@@ -177,17 +176,20 @@ export async function assignSupervisorToPlacement(actorId: string, placementId: 
         action: 'SUPERVISOR_ASSIGNED',
         entity: 'Placement',
         entityId: placementId,
-        newValue: { supervisorId, supervisorName: supervisor.user.fullName },
+        // NOTE: neither Supervisor nor User has a display-name field in the schema (only
+        // Student.fullName exists) -- this previously referenced a non-existent
+        // supervisor.user.fullName, which silently rendered as "undefined" in audit logs and
+        // notifications under the old untyped in-memory Prisma shim. Using email until/unless a
+        // proper display-name field is added for non-student users.
+        newValue: { supervisorId, supervisorEmail: supervisor.user.email },
       },
     });
 
-    await tx.notification.create({
-      data: {
-        recipientId: placement.student.userId,
-        title: 'Preceptor Assigned',
-        message: `Clinical Preceptor ${supervisor.user.fullName} has been assigned to oversee your rotation.`,
-        type: 'SUPERVISOR',
-      },
+    await notify(tx, {
+      recipientId: placement.student.userId,
+      title: 'Preceptor Assigned',
+      message: `Clinical Preceptor ${supervisor.user.email} has been assigned to oversee your rotation.`,
+      type: 'SUPERVISOR',
     });
 
     return updatedPlacement;
@@ -369,12 +371,14 @@ export async function issueCertificate(actorId: string, attachmentId: string) {
       },
     });
 
-    await tx.notification.create({
-      data: {
-        recipientId: attachment.placement.student.userId,
-        title: 'Clinical Certificate Issued',
-        message: `Your verified certificate (${certificateNumber}) is ready for download.`,
-        type: 'CERTIFICATE',
+    await notify(tx, {
+      recipientId: attachment.placement.student.userId,
+      title: 'Clinical Certificate Issued',
+      message: `Your verified certificate (${certificateNumber}) is ready for download.`,
+      type: 'CERTIFICATE',
+      email: {
+        subject: 'Your AZAAM clinical attachment certificate is ready',
+        html: `<p>Congratulations -- your clinical attachment certificate <strong>${certificateNumber}</strong> has been issued.</p><p>You can view and share it from your AZAAM dashboard.</p>`,
       },
     });
 

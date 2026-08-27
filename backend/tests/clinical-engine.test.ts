@@ -74,25 +74,11 @@ describe('Clinical Engine & Placement Lifecycle', () => {
     expect(noOverlap).toBe(false);
   });
 
-  it('formats verified certificates with correct AZM-CERT prefix and sanitizes public fields', () => {
-    const year = 2026;
-    const certNumber = `AZM-CERT-${year}-A1B2C3D4`;
-    expect(certNumber).toMatch(/^AZM-CERT-\d{4}-[A-Z0-9]+$/);
-
-    const publicCertificatePayload = {
-      id: 'cert-123',
-      certificateNumber: certNumber,
-      status: 'VALID',
-      issueDate: new Date('2026-08-01'),
-      studentName: 'Dr. Jane Doe',
-      organizationName: 'Azaam City General Hospital',
-      lastVerifiedAt: new Date(),
-    };
-
-    expect(publicCertificatePayload).not.toHaveProperty('jwt');
-    expect(publicCertificatePayload).not.toHaveProperty('studentDocuments');
-    expect(publicCertificatePayload).not.toHaveProperty('auditLog');
-    expect(publicCertificatePayload.status).toBe('VALID');
-  });
+  // NOTE: certificate number formatting and public-verification sanitization used to be
+  // "tested" here by asserting properties on a hand-written literal object -- it never called
+  // the real issueCertificate/verifyCertificate service functions, so it could not have caught a
+  // real regression. That has been replaced with genuine, real-service-backed, real-Postgres
+  // coverage in tests/certificates.test.ts (see "adminService.verifyCertificate (public endpoint,
+  // sanitized)" and "placementService.issueCertificate").
 });
 

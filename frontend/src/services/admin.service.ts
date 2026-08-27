@@ -179,6 +179,43 @@ export const adminService = {
     return data.data.items || [];
   },
 
+  getDocument: async (id: string): Promise<DocumentRecord> => {
+    const { data } = await api.get(`/documents/${id}`);
+    return data.data;
+  },
+
+  downloadDocument: async (id: string, fileName?: string): Promise<void> => {
+    const response = await api.get(`/documents/${id}/download`, { responseType: 'blob' });
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = window.document.createElement('a');
+    link.href = url;
+    link.download = fileName || 'document';
+    window.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  verifyDocument: async (id: string, comment?: string): Promise<DocumentRecord> => {
+    const { data } = await api.post(`/documents/${id}/verify`, { comment });
+    return data.data;
+  },
+
+  rejectDocument: async (id: string, reason: string): Promise<DocumentRecord> => {
+    const { data } = await api.post(`/documents/${id}/reject`, { reason });
+    return data.data;
+  },
+
+  replaceDocument: async (id: string, file: File): Promise<DocumentRecord> => {
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await api.post(`/documents/${id}/replace`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+
   // Users
   getUsers: async (): Promise<any[]> => {
     const { data } = await api.get('/admin/users');
@@ -216,6 +253,22 @@ export const adminService = {
 
   markAllNotificationsRead: async (): Promise<void> => {
     await api.post('/admin/notifications/read-all');
+  },
+
+  // Per-user notifications (any authenticated role, not just SUPER_ADMIN/AZAAM_STAFF) --
+  // strictly scoped server-side to the caller's own notifications.
+  getMyNotifications: async (): Promise<NotificationRecord[]> => {
+    const { data } = await api.get('/notifications');
+    return data.data.items || [];
+  },
+
+  markMyNotificationRead: async (id: string): Promise<NotificationRecord> => {
+    const { data } = await api.patch(`/notifications/${id}/read`);
+    return data.data;
+  },
+
+  markAllMyNotificationsRead: async (): Promise<void> => {
+    await api.post('/notifications/read-all');
   },
 
   // Search

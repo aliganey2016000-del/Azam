@@ -1,5 +1,7 @@
 import { prisma } from '../utils/prisma';
-import { NotFoundError } from '../utils/errors';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../utils/errors';
+import { notify, listNotificationsForUser, markNotificationReadForUser, markAllNotificationsReadForUser } from './notificationService';
+import { escapeHtml } from '../utils/html';
 
 export async function getAdminStudents() {
   return prisma.student.findMany({
@@ -234,6 +236,10 @@ export async function getAdminCertificates() {
 }
 
 export async function verifyCertificate(certificateNumber: string) {
+  if (!certificateNumber || !certificateNumber.trim()) {
+    return { valid: false, message: 'No certificate found with this verification number.' };
+  }
+
   const cert = await prisma.certificate.findUnique({
     where: { certificateNumber },
     include: {
@@ -250,7 +256,54 @@ export async function verifyCertificate(certificateNumber: string) {
       verification: true,
     },
   });
-  if (!cert) return { valid: false, message: 'No certificate found with this verification number.' };
+
+  if (!cert) {
+    return { valid: false, message: 'No certificate found with this verification number.' };
+  }
+
+  const now = new Date();
+
+  // This is a PUBLIC, unauthenticated endpoint -- record the check (updating lastVerifiedAt /
+  // verificationCount) and log it with a null actor, since there is no authenticated user to
+  // attribute the audit entry to.
+  await prisma.$transaction(async (tx: any) => {
+    if (cert.verification) {
+      await tx.certificateVerification.update({
+        where: { certificateId: cert.id },
+        data: { lastVerifiedAt: now, verificationCount: { increment: 1 } },
+      });
+    } else {
+      await tx.certificateVerification.create({
+        data: { certificateId: cert.id, lastVerifiedAt: now, verificationCount: 1 },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: null,
+        action: 'CERTIFICATE_VERIFIED',
+        entity: 'Certificate',
+        entityId: cert.id,
+        newValue: { certificateNumber, status: cert.status },
+      },
+    });
+  });
+
+  if (cert.status === 'REVOKED') {
+    return {
+      valid: false,
+      certificate: {
+        id: cert.id,
+        certificateNumber: cert.certificateNumber,
+        status: cert.status,
+        revoked: true,
+        revokedAt: cert.revokedAt,
+        revokedReason: cert.revokedReason,
+      },
+      message: 'This certificate has been revoked and is no longer valid.',
+    };
+  }
+
   return {
     valid: cert.status === 'VALID',
     certificate: {
@@ -260,17 +313,57 @@ export async function verifyCertificate(certificateNumber: string) {
       issueDate: cert.issueDate,
       studentName: cert.attachment?.placement?.student?.fullName || 'Student Doctor',
       organizationName: cert.attachment?.placement?.organization?.name || 'Healthcare Organization',
-      lastVerifiedAt: cert.verification?.lastVerifiedAt || new Date(),
+      lastVerifiedAt: now,
     },
   };
 }
 
-export async function revokeCertificate(id: string, reason: string) {
-  const cert = await prisma.certificate.findUnique({ where: { id } });
-  if (!cert) throw new NotFoundError('Certificate not found');
-  return prisma.certificate.update({
+export async function revokeCertificate(actorId: string, id: string, reason: string) {
+  if (!reason || !reason.trim()) {
+    throw new ValidationError([{ message: 'A reason is required to revoke a certificate' }]);
+  }
+
+  const cert = await prisma.certificate.findUnique({
     where: { id },
-    data: { status: 'REVOKED', revokedReason: reason },
+    include: { attachment: { include: { placement: { include: { student: true } } } } },
+  });
+  if (!cert) throw new NotFoundError('Certificate not found');
+  if (cert.status !== 'VALID') {
+    throw new ConflictError(`Only a VALID certificate can be revoked (current status: ${cert.status})`);
+  }
+
+  return prisma.$transaction(async (tx: any) => {
+    const updated = await tx.certificate.update({
+      where: { id },
+      data: { status: 'REVOKED', revokedReason: reason, revokedAt: new Date(), revokedById: actorId },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'CERTIFICATE_REVOKED',
+        entity: 'Certificate',
+        entityId: id,
+        oldValue: { status: cert.status },
+        newValue: { status: 'REVOKED', reason },
+      },
+    });
+
+    const studentUserId = cert.attachment?.placement?.student?.userId;
+    if (studentUserId) {
+      await notify(tx, {
+        recipientId: studentUserId,
+        title: 'Certificate Revoked',
+        message: `Your certificate ${cert.certificateNumber} has been revoked. Reason: ${reason}`,
+        type: 'CERTIFICATE_REVOKED',
+        email: {
+          subject: 'Your AZAAM certificate has been revoked',
+          html: `<p>Your clinical attachment certificate <strong>${escapeHtml(cert.certificateNumber)}</strong> has been revoked.</p><p><strong>Reason:</strong> ${escapeHtml(reason)}</p>`,
+        },
+      });
+    }
+
+    return updated;
   });
 }
 
@@ -326,16 +419,21 @@ export async function getAdminSettings() {
   return prisma.systemSetting.findMany();
 }
 
+// The admin notification endpoints (mounted under requireRoles(['SUPER_ADMIN','AZAAM_STAFF']) in
+// adminRoutes.ts) show a SUPER_ADMIN/AZAAM_STAFF user their own notifications, plus let them act
+// on behalf of any user for support purposes. Per-user access for every other role (STUDENT,
+// SUPERVISOR, UNIVERSITY_USER, ORGANIZATION_USER) is provided separately by notificationRoutes.ts
+// / notificationService.ts, which is scoped strictly to req.authUser.id.
 export async function getAdminNotifications(userId: string) {
-  return prisma.notification.findMany({ where: { recipientId: userId }, orderBy: { createdAt: 'desc' } });
+  return listNotificationsForUser(userId);
 }
 
-export async function markNotificationRead(id: string) {
-  return prisma.notification.update({ where: { id }, data: { read: true } });
+export async function markNotificationRead(actorId: string, actorRoles: string[], id: string) {
+  return markNotificationReadForUser(actorId, actorRoles, id);
 }
 
 export async function markAllNotificationsRead(userId: string) {
-  return prisma.notification.updateMany({ where: { recipientId: userId }, data: { read: true } });
+  return markAllNotificationsReadForUser(userId);
 }
 
 export async function globalAdminSearch(query: string) {

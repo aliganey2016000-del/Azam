@@ -50,7 +50,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </button>
         )}
 
-        <NotificationsMenu />
+        <NotificationsMenu scope="admin" />
 
         <div className="h-5 w-px bg-slate-200 mx-0.5" />
 
